@@ -67,7 +67,7 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
     async (request: FastifyRequest, reply: FastifyReply) => {
       const episodeId = (request.params as { episodeId: string }).episodeId;
       const server = (request.query as { server: StreamingServers }).server;
-
+  
       if (server && !Object.values(StreamingServers).includes(server)) {
         reply.status(400).send('Invalid server');
       }
@@ -76,8 +76,13 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         const res = await gogoanime
           .fetchEpisodeSources(episodeId, server)
           .catch((err) => reply.status(404).send({ message: err }));
-
-        reply.status(200).send(res);
+        if (res.headers && res.headers.Referer) {
+          const referer = res.headers.Referer;
+          reply.redirect(referer);
+        } else {
+          reply.status(400).send('Invalid response');
+        }
+        //reply.status(200).send(res);
       } catch (err) {
         reply
           .status(500)
